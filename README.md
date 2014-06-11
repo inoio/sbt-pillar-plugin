@@ -6,7 +6,7 @@ This is an sbt plugin for [pillar](https://github.com/comeara/pillar) - pillar m
 
 ## Usage
 
-TBD
+TBD 
 
 ## License
 
