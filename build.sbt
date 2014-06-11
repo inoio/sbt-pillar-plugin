@@ -18,10 +18,7 @@ scalacOptions += "-target:jvm-1.7"
 // an official release (see https://github.com/comeara/pillar/issues/12)
 resolvers += "bintray magro" at "http://dl.bintray.com/magro/maven"
 
-libraryDependencies ++= Seq(
-  "com.streamsend" %% "pillar" % "1.0.3-RC1",
-  "org.slf4j" % "slf4j-api" % "1.7.7"
-)
+libraryDependencies += "com.streamsend" %% "pillar" % "1.0.3-RC1"
 
 // Maven publishing info
 publishMavenStyle := true
