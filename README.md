@@ -15,7 +15,7 @@ Currently it's using an ["inofficial" build of pillar](https://github.com/magro/
 
 To install the plugin you have to add it to `project/plugins.sbt`:
 ```
-addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "1.0.0-RC1")
+addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "1.0.0-RC2")
 ```
 
 ## Configuration
