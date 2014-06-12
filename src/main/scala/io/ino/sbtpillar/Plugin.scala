@@ -3,7 +3,6 @@ package io.ino.sbtpillar
 import sbt._
 import Keys._
 import scala.Some
-import com.streamsend.pillar.DataStore
 
 object Plugin extends sbt.Plugin {
 
@@ -82,7 +81,9 @@ object Plugin extends sbt.Plugin {
       try {
         block(url)
       } catch {
-        case NonFatal(e) => logger.error(e.toString)
+        case NonFatal(e) =>
+          logger.error(s"An error occurred while performing task: $e")
+          logger.trace(e)
       }
     }
 
@@ -92,7 +93,9 @@ object Plugin extends sbt.Plugin {
         val session = cluster.connect
         block(url, session)
       } catch {
-        case NonFatal(e) => logger.error(e.toString)
+        case NonFatal(e) =>
+          logger.error(s"An error occurred while performing task: $e")
+          logger.trace(e)
       } finally {
         cluster.closeAsync()
       }
@@ -125,14 +128,17 @@ object Plugin extends sbt.Plugin {
 
     private def loadMigrations(migrationsDir: File) = {
       val parser = com.streamsend.pillar.Parser()
-      migrationsDir.listFiles().map { f =>
-        val in = Files.newInputStream(f.toPath)
-        try {
-          parser.parse(in)
-        } finally {
-          in.close()
-        }
-      }.toList
+      Option(migrationsDir.listFiles()) match {
+        case Some(files) => files.map { f =>
+            val in = Files.newInputStream(f.toPath)
+            try {
+              parser.parse(in)
+            } finally {
+              in.close()
+            }
+          }.toList
+        case None => throw new IllegalArgumentException("The pillarMigrationsDir does not contain any migration files - wrong configuration?")
+      }
     }
 
   }
