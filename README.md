@@ -47,9 +47,9 @@ The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspac
 The sbt pillar plugin provides the following tasks:
 
 <dl>
-<dt>createKeyspace</dt><dd>Creates the keyspace (and creates pillar's applied_migrations table)</dd>
+<dt>createKeyspace</dt><dd>Creates the keyspace (and creates pillar's <code>applied_migrations</code> table)</dd>
 <dt>dropKeyspace</dt><dd>Drops the keyspace</dd>
-<dt>migrate</dt><dd>Runs pillar migrations (assumes `createKeyspace` was run before)</dd>
+<dt>migrate</dt><dd>Runs pillar migrations (assumes <code>createKeyspace</code> was run before)</dd>
 <dt>cleanMigrate</dt><dd>Recreates the keyspace (drops if exists && creates) and runs pillar migrations (useful for continuous integration scenarios)</dd>
 </dl>
 
