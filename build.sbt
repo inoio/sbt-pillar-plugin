@@ -6,7 +6,7 @@ description := "sbt plugin for cassandra schema/data migrations using pillar (ht
 
 organization := "io.ino"
 
-version := "1.0.0-RC2"
+version := "1.0.0"
 
 licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
@@ -14,11 +14,10 @@ scalaVersion := "2.10.4"
 
 scalacOptions += "-target:jvm-1.7"
 
-// pillar intermediately published at bintray, while waiting for
-// an official release (see https://github.com/comeara/pillar/issues/12)
-resolvers += "bintray magro" at "http://dl.bintray.com/magro/maven"
+libraryDependencies += "com.chrisomeara" %% "pillar" % "2.0.0"
 
-libraryDependencies += "com.streamsend" %% "pillar" % "1.0.3-RC1"
+// fix broken dependenxy in pillar until https://github.com/comeara/pillar/pull/14 is merged
+libraryDependencies += "org.clapper" %% "argot" % "1.0.3"
 
 // Maven publishing info
 publishMavenStyle := true
