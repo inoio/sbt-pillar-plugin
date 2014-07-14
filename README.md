@@ -7,15 +7,12 @@ This sbt plugin allows to run Cassandra schema/data migrations from sbt (using [
  The cassandra connection configuration is not based on pillar but we're using our own format (see [Configuration](#configuration)).
 
 The plugin is built for sbt 0.13.
-Currently it's using an ["inofficial" build of pillar](https://github.com/magro/pillar), published to
-[bintray](https://bintray.com/magro/maven/pillar/view/read)
-(until there's a new official release of pillar, see [pillar #12](https://github.com/comeara/pillar/issues/12)).
 
 ## Installation
 
 To install the plugin you have to add it to `project/plugins.sbt`:
 ```
-addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "1.0.0-RC2")
+addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "1.0.0")
 ```
 
 ## Configuration
@@ -32,6 +29,8 @@ pillarConfigFile := file("conf/application.conf")
 
 pillarConfigKey := "cassandra.url"
 
+pillarReplicationFactorConfigKey := "cassandra.replicationFactor"
+
 pillarMigrationsDir := file("conf/migrations")
 ```
 
@@ -41,6 +40,8 @@ check out the [pillar documentation](https://github.com/comeara/pillar#migration
 
 The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspace>?host=<host>&host=<host>`, e.g. it would be
 `cassandra.url="cassandra://192.168.0.10:9042/my_keyspace?host=192.168.0.11&host=192.168.0.12"`.
+
+The `pillarReplicationFactorConfigKey` is optional, the default value is `3`. 
 
 ## Usage
 
