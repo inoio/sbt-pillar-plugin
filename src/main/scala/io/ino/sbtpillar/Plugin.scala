@@ -94,6 +94,7 @@ object Plugin extends sbt.Plugin {
         case NonFatal(e) =>
           logger.error(s"An error occurred while performing task: $e")
           logger.trace(e)
+          throw e
       }
     }
 
@@ -106,6 +107,7 @@ object Plugin extends sbt.Plugin {
         case NonFatal(e) =>
           logger.error(s"An error occurred while performing task: $e")
           logger.trace(e)
+          throw e
       } finally {
         cluster.closeAsync()
       }
