@@ -14,10 +14,7 @@ scalaVersion := "2.10.4"
 
 scalacOptions += "-target:jvm-1.7"
 
-libraryDependencies += "com.chrisomeara" %% "pillar" % "2.0.0"
-
-// fix broken dependenxy in pillar until https://github.com/comeara/pillar/pull/14 is merged
-libraryDependencies += "org.clapper" %% "argot" % "1.0.3"
+libraryDependencies += "com.chrisomeara" %% "pillar" % "2.0.1"
 
 // Maven publishing info
 publishMavenStyle := true
