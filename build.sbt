@@ -14,7 +14,10 @@ scalaVersion := "2.10.4"
 
 scalacOptions += "-target:jvm-1.7"
 
-libraryDependencies += "com.chrisomeara" %% "pillar" % "2.0.1"
+libraryDependencies ++= Seq(
+  "com.chrisomeara" %% "pillar" % "2.0.1",
+  "com.datastax.cassandra" % "cassandra-driver-core" % "2.1.3"
+)
 
 // Maven publishing info
 publishMavenStyle := true
