@@ -50,14 +50,15 @@ object Plugin extends sbt.Plugin {
         withSession(url, streams.value.log) { (url, session) =>
           streams.value.log.info(s"Dropping keyspace ${url.keyspace} at $host:${url.port}")
           session.execute(s"DROP KEYSPACE IF EXISTS ${url.keyspace}")
+
+          streams.value.log.info(s"Creating keyspace ${url.keyspace} at $host:${url.port}")
+          Pillar.initialize(session, replicationFactor, url)
+
+          val dir = pillarMigrationsDir.value
+          streams.value.log.info(s"Migrating keyspace ${url.keyspace} at $host:${url.port} using migrations in $dir")
+          Pillar.migrate(session, dir, url)
         }
 
-        streams.value.log.info(s"Creating keyspace ${url.keyspace} at $host:${url.port}")
-        Pillar.initialize(replicationFactor, url, streams.value.log)
-
-        val dir = pillarMigrationsDir.value
-        streams.value.log.info(s"Migrating keyspace ${url.keyspace} at $host:${url.port} using migrations in $dir")
-        Pillar.migrate(dir, url, streams.value.log)
       }
     },
     pillarConfigKey := "cassandra.url",
@@ -115,8 +116,12 @@ object Plugin extends sbt.Plugin {
 
     def initialize(replicationFactor: Int, url: CassandraUrl, logger: Logger): Unit = {
       withSession(url, logger) { (url, session) =>
-        Migrator(Registry(Seq.empty)).initialize(session, url.keyspace, replicationOptionsWith(replicationFactor = replicationFactor))
+        initialize(session, replicationFactor, url)
       }
+    }
+
+    def initialize(session: Session, replicationFactor: Int, url: CassandraUrl) {
+      Migrator(Registry(Seq.empty)).initialize(session, url.keyspace, replicationOptionsWith(replicationFactor = replicationFactor))
     }
 
     def destroy(url: CassandraUrl, logger: Logger): Unit = {
@@ -127,10 +132,14 @@ object Plugin extends sbt.Plugin {
 
     def migrate(migrationsDir: File, url: CassandraUrl, logger: Logger): Unit = {
       withSession(url, logger) { (url, session) =>
-        val registry = Registry(loadMigrations(migrationsDir))
-        session.execute(s"USE ${url.keyspace}")
-        Migrator(registry).migrate(session)
+        migrate(session, migrationsDir, url)
       }
+    }
+
+    def migrate(session: Session, migrationsDir: File, url: CassandraUrl) {
+      val registry = Registry(loadMigrations(migrationsDir))
+      session.execute(s"USE ${url.keyspace}")
+      Migrator(registry).migrate(session)
     }
 
     private def parseUrl(urlString: String): CassandraUrl = {
