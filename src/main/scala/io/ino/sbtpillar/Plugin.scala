@@ -1,5 +1,6 @@
 package io.ino.sbtpillar
 
+import com.datastax.driver.core.querybuilder.QueryBuilder._
 import sbt.Keys._
 import sbt._
 
@@ -50,6 +51,8 @@ object Plugin extends sbt.Plugin {
         withSession(url, streams.value.log) { (url, session) =>
           streams.value.log.info(s"Dropping keyspace ${url.keyspace} at $host:${url.port}")
           session.execute(s"DROP KEYSPACE IF EXISTS ${url.keyspace}")
+
+          Pillar.checkPeerSchemaVersions(session, streams.value.log)
 
           streams.value.log.info(s"Creating keyspace ${url.keyspace} at $host:${url.port}")
           Pillar.initialize(session, replicationFactor, url)
@@ -140,6 +143,18 @@ object Plugin extends sbt.Plugin {
       val registry = Registry(loadMigrations(migrationsDir))
       session.execute(s"USE ${url.keyspace}")
       Migrator(registry).migrate(session)
+    }
+
+    def checkPeerSchemaVersions(session: Session, logger: Logger): Unit = {
+      import scala.collection.JavaConversions._
+      val schemaByPeer = session.execute(select("peer", "schema_version").from("system", "peers")).all().map { row =>
+        (row.getInet("peer"), row.getUUID("schema_version"))
+      }.toMap
+
+      if(schemaByPeer.values.toSet.size > 1) {
+        val peerSchemaVersions = schemaByPeer.map{ case (peer, schemaVersion) => s"peer: $peer, schema_version: $schemaVersion" }.mkString("\n")
+        logger.warn(s"There are peers with different schema versions:\n$peerSchemaVersions")
+      }
     }
 
     private def parseUrl(urlString: String): CassandraUrl = {
