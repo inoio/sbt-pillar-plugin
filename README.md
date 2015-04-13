@@ -29,6 +29,8 @@ pillarConfigFile := file("conf/application.conf")
 
 pillarConfigKey := "cassandra.url"
 
+pillarReplicationStrategyConfigKey := "cassandra.replicationStrategy"
+
 pillarReplicationFactorConfigKey := "cassandra.replicationFactor"
 
 pillarMigrationsDir := file("conf/migrations")
@@ -41,6 +43,7 @@ check out the [pillar documentation](https://github.com/comeara/pillar#migration
 The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspace>?host=<host>&host=<host>`, e.g. it would be
 `cassandra.url="cassandra://192.168.0.10:9042/my_keyspace?host=192.168.0.11&host=192.168.0.12"`.
 
+The `pillarReplicationStrategyConfigKey` is optional, the default value is `SimpleStrategy`. 
 The `pillarReplicationFactorConfigKey` is optional, the default value is `3`. 
 
 ## Usage

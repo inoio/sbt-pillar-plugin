@@ -16,6 +16,7 @@ object Plugin extends sbt.Plugin {
 
     val pillarConfigFile = settingKey[File]("Path to the configuration file holding the cassandra uri")
     val pillarConfigKey = settingKey[String]("Configuration key storing the cassandra url")
+    val pillarReplicationStrategyConfigKey = settingKey[String]("Configuration key storing the replication strategy to create keyspaces with")
     val pillarReplicationFactorConfigKey = settingKey[String]("Configuration key storing the replication factor to create keyspaces with")
     val pillarMigrationsDir = settingKey[File]("Path to the directory holding migration files")
   }
@@ -26,26 +27,34 @@ object Plugin extends sbt.Plugin {
 
   private def taskSettings: Seq[sbt.Def.Setting[_]] = Seq(
     createKeyspace := {
-      withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value, pillarReplicationFactorConfigKey.value, streams.value.log) { (url, replicationFactor) =>
+      withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value,
+        pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
+        streams.value.log) { (url, replicationStrategy, replicationFactor) =>
         streams.value.log.info(s"Creating keyspace ${url.keyspace} at ${url.hosts(0)}:${url.port}")
-        Pillar.initialize(replicationFactor, url, streams.value.log)
+        Pillar.initialize(replicationStrategy, replicationFactor, url, streams.value.log)
       }
     },
     dropKeyspace := {
-      withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value, pillarReplicationFactorConfigKey.value, streams.value.log) { (url, replicationFactor) =>
+      withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value,
+        pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
+        streams.value.log) { (url, replicationStrategy, replicationFactor) =>
         streams.value.log.info(s"Dropping keyspace ${url.keyspace} at ${url.hosts(0)}:${url.port}")
         Pillar.destroy(url, streams.value.log)
       }
     },
     migrate := {
-      withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value, pillarReplicationFactorConfigKey.value, streams.value.log) { (url, replicationFactor) =>
+      withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value,
+        pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
+        streams.value.log) { (url, replicationStrategy, replicationFactor) =>
         val migrationsDir = pillarMigrationsDir.value
         streams.value.log.info(s"Migrating keyspace ${url.keyspace} at ${url.hosts(0)}:${url.port} using migrations in $migrationsDir")
         Pillar.migrate(migrationsDir, url, streams.value.log)
       }
     },
     cleanMigrate := {
-      withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value, pillarReplicationFactorConfigKey.value, streams.value.log) { (url, replicationFactor) =>
+      withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value,
+        pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
+        streams.value.log) { (url, replicationStrategy, replicationFactor) =>
         val host = url.hosts(0)
 
         withSession(url, streams.value.log) { (url, session) =>
@@ -55,7 +64,7 @@ object Plugin extends sbt.Plugin {
           Pillar.checkPeerSchemaVersions(session, streams.value.log)
 
           streams.value.log.info(s"Creating keyspace ${url.keyspace} at $host:${url.port}")
-          Pillar.initialize(session, replicationFactor, url)
+          Pillar.initialize(session, replicationStrategy, replicationFactor, url)
 
           val dir = pillarMigrationsDir.value
           streams.value.log.info(s"Migrating keyspace ${url.keyspace} at $host:${url.port} using migrations in $dir")
@@ -65,6 +74,7 @@ object Plugin extends sbt.Plugin {
       }
     },
     pillarConfigKey := "cassandra.url",
+    pillarReplicationStrategyConfigKey := "cassandra.replicationStrategy",
     pillarReplicationFactorConfigKey := "cassandra.replicationFactor",
     pillarConfigFile := file("conf/application.conf"),
     pillarMigrationsDir := file("conf/migrations")
@@ -82,18 +92,24 @@ object Plugin extends sbt.Plugin {
     import com.typesafe.config.ConfigFactory
     import scala.util.control.NonFatal
 
+    private val DEFAULT_REPLICATION_STRATEGY = "SimpleStrategy"
     private val DEFAULT_REPLICATION_FACTOR = 3
 
-    def withCassandraUrl(configFile: File, configKey: String, repFactorConfigKey: String, logger: Logger)(block: (CassandraUrl, Int) => Unit): Unit = {
+    def withCassandraUrl(configFile: File,
+                         configKey: String,
+                         repStrategyConfigKey: String,
+                         repFactorConfigKey: String,
+                         logger: Logger)(block: (CassandraUrl, String, Int) => Unit): Unit = {
       val configFileMod = file(sys.env.getOrElse("PILLAR_CONFIG_FILE", configFile.getAbsolutePath))
       logger.info(s"Reading config from ${configFileMod.getAbsolutePath}")
       val config = ConfigFactory.parseFile(configFileMod).resolve()
       val urlString = config.getString(configKey)
       val url = parseUrl(urlString)
 
+      val replicationStrategy = Try(config.getString(repStrategyConfigKey)).getOrElse(DEFAULT_REPLICATION_STRATEGY)
       val replicationFactor = Try(config.getInt(repFactorConfigKey)).getOrElse(DEFAULT_REPLICATION_FACTOR)
       try {
-        block(url, replicationFactor)
+        block(url, replicationStrategy, replicationFactor)
       } catch {
         case NonFatal(e) =>
           logger.error(s"An error occurred while performing task: $e")
@@ -117,14 +133,14 @@ object Plugin extends sbt.Plugin {
       }
     }
 
-    def initialize(replicationFactor: Int, url: CassandraUrl, logger: Logger): Unit = {
+    def initialize(replicationStrategy: String, replicationFactor: Int, url: CassandraUrl, logger: Logger): Unit = {
       withSession(url, logger) { (url, session) =>
-        initialize(session, replicationFactor, url)
+        initialize(session, replicationStrategy, replicationFactor, url)
       }
     }
 
-    def initialize(session: Session, replicationFactor: Int, url: CassandraUrl) {
-      Migrator(Registry(Seq.empty)).initialize(session, url.keyspace, replicationOptionsWith(replicationFactor = replicationFactor))
+    def initialize(session: Session, replicationStrategy: String, replicationFactor: Int, url: CassandraUrl) {
+      Migrator(Registry(Seq.empty)).initialize(session, url.keyspace, replicationOptionsWith(replicationStrategy, replicationFactor))
     }
 
     def destroy(url: CassandraUrl, logger: Logger): Unit = {
@@ -181,8 +197,8 @@ object Plugin extends sbt.Plugin {
       }
     }
 
-    private def replicationOptionsWith(replicationFactor: Int) =
-      new ReplicationOptions(Map("class" -> "SimpleStrategy", "replication_factor" -> replicationFactor))
+    private def replicationOptionsWith(replicationStrategy: String, replicationFactor: Int) =
+      new ReplicationOptions(Map("class" -> replicationStrategy, "replication_factor" -> replicationFactor))
   }
 
 }
