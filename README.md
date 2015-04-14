@@ -33,6 +33,8 @@ pillarReplicationStrategyConfigKey := "cassandra.replicationStrategy"
 
 pillarReplicationFactorConfigKey := "cassandra.replicationFactor"
 
+pillarDefaultConsistencyLevelConfigKey := "cassandra.defaultConsistencyLevel"
+
 pillarMigrationsDir := file("conf/migrations")
 ```
 
@@ -45,6 +47,7 @@ The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspac
 
 The `pillarReplicationStrategyConfigKey` is optional, the default value is `SimpleStrategy`. 
 The `pillarReplicationFactorConfigKey` is optional, the default value is `3`. 
+The `pillarDefaultConsistencyLevelConfigKey` is optional, the default value is `QUORUM`.
 
 ## Usage
 
