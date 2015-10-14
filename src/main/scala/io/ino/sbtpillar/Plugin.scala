@@ -1,7 +1,7 @@
 package io.ino.sbtpillar
 
-import com.datastax.driver.core.{QueryOptions, ConsistencyLevel}
 import com.datastax.driver.core.querybuilder.QueryBuilder._
+import com.datastax.driver.core.{ConsistencyLevel, QueryOptions}
 import sbt.Keys._
 import sbt._
 
@@ -94,9 +94,11 @@ object Plugin extends sbt.Plugin {
   private object Pillar {
 
     import java.nio.file.Files
-    import com.datastax.driver.core.Cluster
+
     import com.chrisomeara.pillar._
+    import com.datastax.driver.core.Cluster
     import com.typesafe.config.ConfigFactory
+
     import scala.util.control.NonFatal
 
     private val DEFAULT_DEFAULT_CONSISTENCY_LEVEL = ConsistencyLevel.QUORUM
@@ -131,10 +133,12 @@ object Plugin extends sbt.Plugin {
     def withSession(url: CassandraUrl, defaultConsistencyLevel: Option[ConsistencyLevel], logger: Logger)
                    (block: (CassandraUrl, Session) => Unit): Unit = {
 
+      implicit val iLog = logger
+
       val queryOptions = new QueryOptions()
       defaultConsistencyLevel.foreach(queryOptions.setConsistencyLevel)
       val cluster = new Cluster.Builder()
-        .addContactPoints(url.hosts.toArray: _*)
+        .addContactPointsSafe(url.hosts.toArray: _*)
         .withPort(url.port)
         .withQueryOptions(queryOptions)
         .build
@@ -217,6 +221,37 @@ object Plugin extends sbt.Plugin {
 
     private def replicationOptionsWith(replicationStrategy: String, replicationFactor: Int) =
       new ReplicationOptions(Map("class" -> replicationStrategy, "replication_factor" -> replicationFactor))
+
+
+    private implicit class RichClusterBuilder(builder: Cluster.Builder) {
+
+      /** Add contact points ignoring errors for single contact points.
+        * Cluster.Builder.addContactPoints fails/throws as soon as a single node/host address cannot be resolved via InetAddress.
+        */
+      def addContactPointsSafe(addresses: String*)(implicit logger: Logger): Cluster.Builder = {
+
+        require(addresses.nonEmpty, "At least 1 contact point must be specified.")
+
+        val (built, exceptions) = addresses.foldLeft((builder, List.empty[Throwable])) { case ((b, es), address) =>
+          try {
+            (b.addContactPoint(address), es)
+          } catch {
+            case e: Throwable =>
+              logger.warn(s"Failed to add contact point $address: $e")
+              (b, e :: es)
+          }
+        }
+
+        if(exceptions.length == addresses.length) {
+          logger.error(s"All contact points failed on addContactPoint, rethrowing exception for last contact point.")
+          throw exceptions.head
+        }
+
+        built
+      }
+
+    }
+
   }
 
 }
