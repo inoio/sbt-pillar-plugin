@@ -16,7 +16,7 @@ scalacOptions += "-target:jvm-1.7"
 
 libraryDependencies ++= Seq(
   "com.chrisomeara" %% "pillar" % "2.0.1",
-  "com.datastax.cassandra" % "cassandra-driver-core" % "2.1.8"
+  "com.datastax.cassandra" % "cassandra-driver-core" % "3.0.0"
 )
 
 // Maven publishing info
