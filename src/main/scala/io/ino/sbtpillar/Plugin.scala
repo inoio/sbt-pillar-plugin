@@ -1,5 +1,6 @@
 package io.ino.sbtpillar
 
+import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core.querybuilder.QueryBuilder._
 import com.datastax.driver.core.{ConsistencyLevel, QueryOptions}
 import sbt.Keys._
@@ -89,7 +90,9 @@ object Plugin extends sbt.Plugin {
 
   def pillarSettings: Seq[sbt.Def.Setting[_]] = inConfig(Test)(taskSettings) ++ taskSettings
 
-  private case class CassandraUrl(hosts: Seq[String], port: Int, keyspace: String)
+  private case class CassandraUrl(hosts: Seq[String], port: Int, keyspace: String, cassandraCredentials: Option[CassandraCredentials] = None)
+
+  private case class CassandraCredentials(username: String, password: String)
 
   private object Pillar {
 
@@ -137,11 +140,15 @@ object Plugin extends sbt.Plugin {
 
       val queryOptions = new QueryOptions()
       defaultConsistencyLevel.foreach(queryOptions.setConsistencyLevel)
-      val cluster = new Cluster.Builder()
+      val defaultBuilder: Builder = new Builder()
         .addContactPointsSafe(url.hosts.toArray: _*)
         .withPort(url.port)
         .withQueryOptions(queryOptions)
-        .build
+
+      val cluster: Cluster = url.cassandraCredentials.foldLeft(defaultBuilder) {
+        case (builder, cred) => builder.withCredentials(cred.username, cred.password)
+      }.build
+
       try {
         val session = cluster.connect
         block(url, session)
@@ -201,7 +208,10 @@ object Plugin extends sbt.Plugin {
         case Some(query) => query.split('&').map(_.split('=')).filter(param => param(0) == "host").map(param => param(1)).toSeq
         case None => Seq.empty
       }
-      CassandraUrl(Seq(uri.getHost) ++ additionalHosts, uri.getPort, uri.getPath.substring(1))
+      Option(uri.getUserInfo).map(_.split(':')) match {
+        case Some(Array(user, pass)) => CassandraUrl(Seq(uri.getHost) ++ additionalHosts, uri.getPort, uri.getPath.substring(1), Some(CassandraCredentials(user, pass)))
+        case _ => CassandraUrl(Seq(uri.getHost) ++ additionalHosts, uri.getPort, uri.getPath.substring(1))
+      }
     }
 
     private def loadMigrations(migrationsDir: File) = {
