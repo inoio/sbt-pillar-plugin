@@ -95,7 +95,7 @@ object Plugin extends sbt.Plugin {
 
     import java.nio.file.Files
 
-    import com.chrisomeara.pillar._
+    import de.kaufhof.pillar._
     import com.datastax.driver.core.Cluster
     import com.typesafe.config.ConfigFactory
 
@@ -205,7 +205,7 @@ object Plugin extends sbt.Plugin {
     }
 
     private def loadMigrations(migrationsDir: File) = {
-      val parser = com.chrisomeara.pillar.Parser()
+      val parser = de.kaufhof.pillar.Parser()
       Option(migrationsDir.listFiles()) match {
         case Some(files) => files.map { f =>
           val in = Files.newInputStream(f.toPath)
