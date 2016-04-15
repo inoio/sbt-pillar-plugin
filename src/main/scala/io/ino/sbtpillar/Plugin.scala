@@ -89,7 +89,7 @@ object Plugin extends sbt.Plugin {
 
   def pillarSettings: Seq[sbt.Def.Setting[_]] = inConfig(Test)(taskSettings) ++ taskSettings
 
-  private case class CassandraUrl(hosts: Seq[String], port: Int, keyspace: String)
+  private case class CassandraUrl(hosts: Seq[String], port: Int, keyspace: String, var username: String = "cassandra", var password: String = "cassandra")
 
   private object Pillar {
 
@@ -139,6 +139,7 @@ object Plugin extends sbt.Plugin {
       defaultConsistencyLevel.foreach(queryOptions.setConsistencyLevel)
       val cluster = new Cluster.Builder()
         .addContactPointsSafe(url.hosts.toArray: _*)
+        .withCredentials(url.username, url.password)
         .withPort(url.port)
         .withQueryOptions(queryOptions)
         .build
@@ -197,11 +198,15 @@ object Plugin extends sbt.Plugin {
 
     private def parseUrl(urlString: String): CassandraUrl = {
       val uri = new URI(urlString)
+
       val additionalHosts = Option(uri.getQuery) match {
         case Some(query) => query.split('&').map(_.split('=')).filter(param => param(0) == "host").map(param => param(1)).toSeq
         case None => Seq.empty
       }
-      CassandraUrl(Seq(uri.getHost) ++ additionalHosts, uri.getPort, uri.getPath.substring(1))
+      Option(uri.getUserInfo).getOrElse("").split(':') match {
+        case Array(user, pass) => CassandraUrl(Seq(uri.getHost) ++ additionalHosts, uri.getPort, uri.getPath.substring(1), user, pass)
+        case _ => CassandraUrl(Seq(uri.getHost) ++ additionalHosts, uri.getPort, uri.getPath.substring(1))
+      }
     }
 
     private def loadMigrations(migrationsDir: File) = {
