@@ -36,6 +36,9 @@ pillarReplicationFactorConfigKey := "cassandra.replicationFactor"
 pillarDefaultConsistencyLevelConfigKey := "cassandra.defaultConsistencyLevel"
 
 pillarMigrationsDir := file("conf/migrations")
+
+//optionally:
+pillarExtraMigrationsDirs := Seq(file("conf/extra-migrations"))
 ```
 
 The shown configuration assumes that the url for your cassandra is configured in `conf/application.conf` under the key
@@ -45,9 +48,10 @@ check out the [pillar documentation](https://github.com/comeara/pillar#migration
 The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspace>?host=<host>&host=<host>`, e.g. it would be
 `cassandra.url="cassandra://192.168.0.10:9042/my_keyspace?host=192.168.0.11&host=192.168.0.12"`.
 
-The `pillarReplicationStrategyConfigKey` is optional, the default value is `SimpleStrategy`. 
-The `pillarReplicationFactorConfigKey` is optional, the default value is `3`. 
+The `pillarReplicationStrategyConfigKey` is optional, the default value is `SimpleStrategy`.
+The `pillarReplicationFactorConfigKey` is optional, the default value is `3`.
 The `pillarDefaultConsistencyLevelConfigKey` is optional, the default value is `QUORUM`.
+The `pillarExtraMigrationsDirs` is optional, the default is `Seq.empty`.  Here you can add directories containing extra migration files, which will be processed in addition to the ones in `pillarMigrationsDir`.
 
 ## Usage
 

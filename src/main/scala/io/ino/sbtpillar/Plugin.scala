@@ -22,6 +22,7 @@ object Plugin extends sbt.Plugin {
     val pillarReplicationStrategyConfigKey = settingKey[String]("Configuration key storing the replication strategy to create keyspaces with")
     val pillarReplicationFactorConfigKey = settingKey[String]("Configuration key storing the replication factor to create keyspaces with")
     val pillarMigrationsDir = settingKey[File]("Path to the directory holding migration files")
+    val pillarExtraMigrationsDirs = settingKey[Seq[File]]("List of paths to directories holding extra migration files, applied after files from `pillarMigrationsDir`")
   }
 
   import com.datastax.driver.core.Session
@@ -52,9 +53,10 @@ object Plugin extends sbt.Plugin {
         pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
         pillarDefaultConsistencyLevelConfigKey.value,
         streams.value.log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel) =>
-        val migrationsDir = pillarMigrationsDir.value
-        streams.value.log.info(s"Migrating keyspace ${url.keyspace} at ${url.hosts(0)}:${url.port} using migrations in $migrationsDir with consistency $defaultConsistencyLevel")
-        Pillar.migrate(migrationsDir, url, defaultConsistencyLevel, streams.value.log)
+        val migrationsDirs = pillarMigrationsDir.value +: pillarExtraMigrationsDirs.value
+        streams.value.log.info(
+          s"Migrating keyspace ${url.keyspace} at ${url.hosts(0)}:${url.port} using migrations in [${migrationsDirs.mkString(",")}] with consistency $defaultConsistencyLevel")
+        Pillar.migrate(migrationsDirs, url, defaultConsistencyLevel, streams.value.log)
       }
     },
     cleanMigrate := {
@@ -73,9 +75,10 @@ object Plugin extends sbt.Plugin {
           streams.value.log.info(s"Creating keyspace ${url.keyspace} at $host:${url.port}")
           Pillar.initialize(session, replicationStrategy, replicationFactor, url)
 
-          val dir = pillarMigrationsDir.value
-          streams.value.log.info(s"Migrating keyspace ${url.keyspace} at $host:${url.port} using migrations in $dir with consistency $defaultConsistencyLevel")
-          Pillar.migrate(session, dir, url)
+          val dirs = pillarMigrationsDir.value +: pillarExtraMigrationsDirs.value
+          streams.value.log.info(
+            s"Migrating keyspace ${url.keyspace} at $host:${url.port} using migrations in [${dirs.mkString(",")}] with consistency $defaultConsistencyLevel")
+          Pillar.migrate(session, dirs, url)
         }
 
       }
@@ -85,7 +88,8 @@ object Plugin extends sbt.Plugin {
     pillarReplicationFactorConfigKey := "cassandra.replicationFactor",
     pillarDefaultConsistencyLevelConfigKey := "cassandra.defaultConsistencyLevel",
     pillarConfigFile := file("conf/application.conf"),
-    pillarMigrationsDir := file("conf/migrations")
+    pillarMigrationsDir := file("conf/migrations"),
+    pillarExtraMigrationsDirs := Seq()
   )
 
   def pillarSettings: Seq[sbt.Def.Setting[_]] = inConfig(Test)(taskSettings) ++ taskSettings
@@ -178,14 +182,14 @@ object Plugin extends sbt.Plugin {
       }
     }
 
-    def migrate(migrationsDir: File, url: CassandraUrl, defaultConsistencyLevel: ConsistencyLevel, logger: Logger): Unit = {
+    def migrate(migrationsDirs: Seq[File], url: CassandraUrl, defaultConsistencyLevel: ConsistencyLevel, logger: Logger): Unit = {
       withSession(url, Some(defaultConsistencyLevel), logger) { (url, session) =>
-        migrate(session, migrationsDir, url)
+        migrate(session, migrationsDirs, url)
       }
     }
 
-    def migrate(session: Session, migrationsDir: File, url: CassandraUrl) {
-      val registry = Registry(loadMigrations(migrationsDir))
+    def migrate(session: Session, migrationsDirs: Seq[File], url: CassandraUrl): Unit = {
+      val registry = Registry(migrationsDirs.flatMap(loadMigrations))
       session.execute(s"USE ${url.keyspace}")
       Migrator(registry).migrate(session)
     }
