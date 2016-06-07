@@ -12,7 +12,7 @@ The plugin is built for sbt 0.13.
 
 To install the plugin you have to add it to `project/plugins.sbt`:
 ```
-addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.0.0")
+addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.1.0")
 ```
 
 ## Configuration
@@ -49,8 +49,11 @@ The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspac
 `cassandra.url="cassandra://192.168.0.10:9042/my_keyspace?host=192.168.0.11&host=192.168.0.12"`.
 
 The `pillarReplicationStrategyConfigKey` is optional, the default value is `SimpleStrategy`.
+
 The `pillarReplicationFactorConfigKey` is optional, the default value is `3`.
+
 The `pillarDefaultConsistencyLevelConfigKey` is optional, the default value is `QUORUM`.
+
 The `pillarExtraMigrationsDirs` is optional, the default is `Seq.empty`.  Here you can add directories containing extra migration files, which will be processed in addition to the ones in `pillarMigrationsDir`.
 
 ## Usage
