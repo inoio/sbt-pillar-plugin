@@ -218,22 +218,24 @@ object Plugin extends sbt.Plugin {
       }
     }
 
-    private def loadMigrations(migrationsDir: File) = {
+    private def loadMigrations(migrationsDir: File): List[Migration] = {
       val parser = de.kaufhof.pillar.Parser()
-      Option(migrationsDir.listFiles()) match {
-        case Some(files) => files.map { f =>
-          val in = Files.newInputStream(f.toPath)
+      val files = Path.allSubpaths(migrationsDir).map(_._1).filterNot(_.isDirectory).toSeq
+      if (files.nonEmpty) {
+        files.map {file =>
+          val in = Files.newInputStream(file.toPath)
           try {
             parser.parse(in)
           } finally {
             in.close()
           }
         }.toList
-        case None => throw new IllegalArgumentException("The pillarMigrationsDir does not contain any migration files - wrong configuration?")
+      } else {
+        throw new IllegalArgumentException("The pillarMigrationsDir does not contain any migration files - wrong configuration?")
       }
     }
 
-    private def replicationOptionsWith(replicationStrategy: String, replicationFactor: Int) =
+    private def replicationOptionsWith(replicationStrategy: String, replicationFactor: Int): ReplicationOptions =
       new ReplicationOptions(Map("class" -> replicationStrategy, "replication_factor" -> replicationFactor))
 
 
