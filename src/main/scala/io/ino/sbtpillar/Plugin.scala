@@ -220,7 +220,7 @@ object Plugin extends sbt.Plugin {
 
     private def loadMigrations(migrationsDir: File) = {
       val parser = de.kaufhof.pillar.Parser()
-      Option(migrationsDir.listFiles()) match {
+      Option(migrationsDir.listFiles().filterNot(_.isDirectory)) match {
         case Some(files) => files.map { f =>
           val in = Files.newInputStream(f.toPath)
           try {
