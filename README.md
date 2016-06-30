@@ -12,7 +12,7 @@ The plugin is built for sbt 0.13.
 
 To install the plugin you have to add it to `project/plugins.sbt`:
 ```
-addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.1.0")
+addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.1.1")
 ```
 
 ## Configuration
