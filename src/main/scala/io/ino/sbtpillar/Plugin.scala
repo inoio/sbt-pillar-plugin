@@ -220,16 +220,30 @@ object Plugin extends sbt.Plugin {
 
     private def loadMigrations(migrationsDir: File) = {
       val parser = de.kaufhof.pillar.Parser()
-      Option(migrationsDir.listFiles().filterNot(_.isDirectory)) match {
-        case Some(files) => files.map { f =>
-          val in = Files.newInputStream(f.toPath)
+      val fileList: Seq[File] = getFilesRecursivelyThroughFolders(migrationsDir,Seq.empty[File])
+      if (fileList.nonEmpty) {
+        fileList map {file =>
+          val in = Files.newInputStream(file.toPath)
           try {
             parser.parse(in)
           } finally {
             in.close()
           }
-        }.toList
-        case None => throw new IllegalArgumentException("The pillarMigrationsDir does not contain any migration files - wrong configuration?")
+        } toList
+      } else {
+        throw new IllegalArgumentException("The pillarMigrationsDir does not contain any migration files - wrong configuration?")
+      }
+    }
+
+    private def getFilesRecursivelyThroughFolders(file: File, seqFiles: Seq[File]): Seq[File] = {
+      Option(file.listFiles()) match {
+        case Some(files: Array[File]) =>
+          files flatMap {
+            case f: File if f.isDirectory => getFilesRecursivelyThroughFolders(f, seqFiles)
+            case f: File =>  seqFiles :+ f
+            case _ => seqFiles
+          }
+        case _ => seqFiles
       }
     }
 
