@@ -12,7 +12,7 @@ The plugin is built for sbt 0.13.
 
 To install the plugin you have to add it to `project/plugins.sbt`:
 ```
-addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.1.0")
+addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.1.1")
 ```
 
 ## Configuration
@@ -47,6 +47,8 @@ check out the [pillar documentation](https://github.com/comeara/pillar#migration
 
 The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspace>?host=<host>&host=<host>`, e.g. it would be
 `cassandra.url="cassandra://192.168.0.10:9042/my_keyspace?host=192.168.0.11&host=192.168.0.12"`.
+
+The `pillarMigrationsDir` contains the directory with the cql-files to process. There would be read recursively through all folders in this directory.
 
 The `pillarReplicationStrategyConfigKey` is optional, the default value is `SimpleStrategy`.
 
