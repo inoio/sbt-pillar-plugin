@@ -1,6 +1,7 @@
 # sbt-pillar-plugin - manage Cassandra migrations from sbt
 
 [![Build Status](https://travis-ci.org/inoio/sbt-pillar-plugin.png?branch=master)](https://travis-ci.org/inoio/sbt-pillar-plugin)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.ino/sbt-pillar-plugin/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.ino%22%20a%3A%22sbt-pillar-plugin%22)
 
 This sbt plugin allows to run Cassandra schema/data migrations from sbt (using [pillar](https://github.com/comeara/pillar)).
  For details on migration files check out the [pillar documentation](https://github.com/comeara/pillar#migration-files).
