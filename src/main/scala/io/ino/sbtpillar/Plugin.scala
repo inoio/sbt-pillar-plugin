@@ -221,7 +221,6 @@ object Plugin extends sbt.Plugin {
     private def loadMigrations(migrationsDir: File): List[Migration] = {
       val parser = de.kaufhof.pillar.Parser()
       val files = Path.allSubpaths(migrationsDir).map(_._1).filterNot(f => f.isDirectory || f.getName.head == '.').toSeq
-
       if (files.nonEmpty) {
         files.map {file =>
           val in = Files.newInputStream(file.toPath)
