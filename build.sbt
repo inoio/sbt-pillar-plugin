@@ -10,7 +10,7 @@ version := "2.1.1"
 
 licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.10.6"
 
 scalacOptions += "-target:jvm-1.7"
 

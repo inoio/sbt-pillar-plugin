@@ -1,0 +1,4 @@
+# check that migrate and cleanMigrate succeed even with dots files in the migration dir
+> createKeyspace
+> migrate
+> cleanMigrate
