@@ -6,7 +6,7 @@ description := "sbt plugin for cassandra schema/data migrations using pillar (ht
 
 organization := "io.ino"
 
-version := "2.1.1"
+version := "2.1.2"
 
 licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
