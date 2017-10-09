@@ -6,9 +6,10 @@ import com.datastax.driver.core.{ConsistencyLevel, QueryOptions}
 import sbt.Keys._
 import sbt._
 
+import scala.collection.JavaConverters._
 import scala.util.Try
 
-object Plugin extends sbt.Plugin {
+object Plugin extends sbt.AutoPlugin {
 
   object PillarKeys {
     val createKeyspace = taskKey[Unit]("Create keyspace.")
@@ -21,62 +22,71 @@ object Plugin extends sbt.Plugin {
     val pillarDefaultConsistencyLevelConfigKey = settingKey[String]("Configuration key storing the consistency level for the session")
     val pillarReplicationStrategyConfigKey = settingKey[String]("Configuration key storing the replication strategy to create keyspaces with")
     val pillarReplicationFactorConfigKey = settingKey[String]("Configuration key storing the replication factor to create keyspaces with")
+    val pillarDatacenterNamesConfigKey = settingKey[String]("Configuration key storing a list of datacenter names required when using NetworkTopologyStrategy")
     val pillarMigrationsDir = settingKey[File]("Path to the directory holding migration files")
     val pillarExtraMigrationsDirs = settingKey[Seq[File]]("List of paths to directories holding extra migration files, applied after files from `pillarMigrationsDir`")
   }
 
+  import Pillar.{withCassandraUrl, withSession}
+  import PillarKeys._
   import com.datastax.driver.core.Session
-  import io.ino.sbtpillar.Plugin.Pillar.{withCassandraUrl, withSession}
-  import io.ino.sbtpillar.Plugin.PillarKeys._
 
   private def taskSettings: Seq[sbt.Def.Setting[_]] = Seq(
     createKeyspace := {
+      val log = streams.value.log
       withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value,
         pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
         pillarDefaultConsistencyLevelConfigKey.value,
-        streams.value.log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel) =>
-        streams.value.log.info(s"Creating keyspace ${url.keyspace} at ${url.hosts(0)}:${url.port}")
-        Pillar.initialize(replicationStrategy, replicationFactor, url, streams.value.log)
+        pillarDatacenterNamesConfigKey.value,
+        log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel, datacenterNames) =>
+        log.info(s"Creating keyspace ${url.keyspace} at ${url.hosts.head}:${url.port}")
+        Pillar.initialize(replicationStrategy, replicationFactor, url, datacenterNames, log)
       }
     },
     dropKeyspace := {
+      val log = streams.value.log
       withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value,
         pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
         pillarDefaultConsistencyLevelConfigKey.value,
-        streams.value.log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel) =>
-        streams.value.log.info(s"Dropping keyspace ${url.keyspace} at ${url.hosts(0)}:${url.port}")
-        Pillar.destroy(url, streams.value.log)
+        pillarDatacenterNamesConfigKey.value,
+        log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel, datacenterNames) =>
+        log.info(s"Dropping keyspace ${url.keyspace} at ${url.hosts.head}:${url.port}")
+        Pillar.destroy(url, log)
       }
     },
     migrate := {
+      val log = streams.value.log
       withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value,
         pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
         pillarDefaultConsistencyLevelConfigKey.value,
-        streams.value.log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel) =>
+        pillarDatacenterNamesConfigKey.value,
+        log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel, datacenterNames) =>
         val migrationsDirs = pillarMigrationsDir.value +: pillarExtraMigrationsDirs.value
-        streams.value.log.info(
-          s"Migrating keyspace ${url.keyspace} at ${url.hosts(0)}:${url.port} using migrations in [${migrationsDirs.mkString(",")}] with consistency $defaultConsistencyLevel")
-        Pillar.migrate(migrationsDirs, url, defaultConsistencyLevel, streams.value.log)
+        log.info(
+          s"Migrating keyspace ${url.keyspace} at ${url.hosts.head}:${url.port} using migrations in [${migrationsDirs.mkString(",")}] with consistency $defaultConsistencyLevel")
+        Pillar.migrate(migrationsDirs, url, defaultConsistencyLevel, log)
       }
     },
     cleanMigrate := {
+      val log = streams.value.log
       withCassandraUrl(pillarConfigFile.value, pillarConfigKey.value,
         pillarReplicationStrategyConfigKey.value, pillarReplicationFactorConfigKey.value,
         pillarDefaultConsistencyLevelConfigKey.value,
-        streams.value.log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel) =>
-        val host = url.hosts(0)
+        pillarDatacenterNamesConfigKey.value,
+        log) { (url, replicationStrategy, replicationFactor, defaultConsistencyLevel, datacenterNames) =>
+        val host = url.hosts.head
 
-        withSession(url, Some(defaultConsistencyLevel), streams.value.log) { (url, session) =>
-          streams.value.log.info(s"Dropping keyspace ${url.keyspace} at $host:${url.port}")
+        withSession(url, Some(defaultConsistencyLevel), log) { (url, session) =>
+          log.info(s"Dropping keyspace ${url.keyspace} at $host:${url.port}")
           session.execute(s"DROP KEYSPACE IF EXISTS ${url.keyspace}")
 
-          Pillar.checkPeerSchemaVersions(session, streams.value.log)
+          Pillar.checkPeerSchemaVersions(session, log)
 
-          streams.value.log.info(s"Creating keyspace ${url.keyspace} at $host:${url.port}")
-          Pillar.initialize(session, replicationStrategy, replicationFactor, url)
+          log.info(s"Creating keyspace ${url.keyspace} at $host:${url.port}")
+          Pillar.initialize(session, replicationStrategy, replicationFactor, url, datacenterNames)
 
           val dirs = pillarMigrationsDir.value +: pillarExtraMigrationsDirs.value
-          streams.value.log.info(
+          log.info(
             s"Migrating keyspace ${url.keyspace} at $host:${url.port} using migrations in [${dirs.mkString(",")}] with consistency $defaultConsistencyLevel")
           Pillar.migrate(session, dirs, url)
         }
@@ -87,6 +97,7 @@ object Plugin extends sbt.Plugin {
     pillarReplicationStrategyConfigKey := "cassandra.replicationStrategy",
     pillarReplicationFactorConfigKey := "cassandra.replicationFactor",
     pillarDefaultConsistencyLevelConfigKey := "cassandra.defaultConsistencyLevel",
+    pillarDatacenterNamesConfigKey := "cassandra.datacenters",
     pillarConfigFile := file("conf/application.conf"),
     pillarMigrationsDir := file("conf/migrations"),
     pillarExtraMigrationsDirs := Seq()
@@ -102,9 +113,9 @@ object Plugin extends sbt.Plugin {
 
     import java.nio.file.Files
 
-    import de.kaufhof.pillar._
     import com.datastax.driver.core.Cluster
     import com.typesafe.config.ConfigFactory
+    import de.kaufhof.pillar._
 
     import scala.util.control.NonFatal
 
@@ -117,7 +128,8 @@ object Plugin extends sbt.Plugin {
                          repStrategyConfigKey: String,
                          repFactorConfigKey: String,
                          defaultConsistencyLevelConfigKey: String,
-                         logger: Logger)(block: (CassandraUrl, String, Int, ConsistencyLevel) => Unit): Unit = {
+                         pillarDatacenterNamesConfigKey: String,
+                         logger: Logger)(block: (CassandraUrl, String, Int, ConsistencyLevel, List[String]) => Unit): Unit = {
       val configFileMod = file(sys.env.getOrElse("PILLAR_CONFIG_FILE", configFile.getAbsolutePath))
       logger.info(s"Reading config from ${configFileMod.getAbsolutePath}")
       val config = ConfigFactory.parseFile(configFileMod).resolve()
@@ -127,8 +139,9 @@ object Plugin extends sbt.Plugin {
       val defaultConsistencyLevel = Try(ConsistencyLevel.valueOf(config.getString(defaultConsistencyLevelConfigKey))).getOrElse(DEFAULT_DEFAULT_CONSISTENCY_LEVEL)
       val replicationStrategy = Try(config.getString(repStrategyConfigKey)).getOrElse(DEFAULT_REPLICATION_STRATEGY)
       val replicationFactor = Try(config.getInt(repFactorConfigKey)).getOrElse(DEFAULT_REPLICATION_FACTOR)
+      val datacenterNames = Try(config.getStringList(pillarDatacenterNamesConfigKey).asScala).getOrElse(List.empty).to[List]
       try {
-        block(url, replicationStrategy, replicationFactor, defaultConsistencyLevel)
+        block(url, replicationStrategy, replicationFactor, defaultConsistencyLevel, datacenterNames)
       } catch {
         case NonFatal(e) =>
           logger.error(s"An error occurred while performing task: $e")
@@ -140,7 +153,7 @@ object Plugin extends sbt.Plugin {
     def withSession(url: CassandraUrl, defaultConsistencyLevel: Option[ConsistencyLevel], logger: Logger)
                    (block: (CassandraUrl, Session) => Unit): Unit = {
 
-      implicit val iLog = logger
+      implicit val iLog: sbt.Logger = logger
 
       val queryOptions = new QueryOptions()
       defaultConsistencyLevel.foreach(queryOptions.setConsistencyLevel)
@@ -166,19 +179,23 @@ object Plugin extends sbt.Plugin {
       }
     }
 
-    def initialize(replicationStrategy: String, replicationFactor: Int, url: CassandraUrl, logger: Logger): Unit = {
+    def initialize(replicationStrategy: String, replicationFactor: Int, url: CassandraUrl, datacenterNames: List[String], logger: Logger): Unit = {
       withSession(url, None, logger) { (url, session) =>
-        initialize(session, replicationStrategy, replicationFactor, url)
+        initialize(session, replicationStrategy, replicationFactor, url, datacenterNames)
       }
     }
 
-    def initialize(session: Session, replicationStrategy: String, replicationFactor: Int, url: CassandraUrl) {
-      Migrator(Registry(Seq.empty)).initialize(session, url.keyspace, replicationOptionsWith(replicationStrategy, replicationFactor))
+    def initialize(session: Session, replicationStrategy: String, replicationFactor: Int, url: CassandraUrl, datacenterNames: List[String]) {
+      val replStrategy = replicationStrategy match {
+        case "SimpleStrategy" => SimpleStrategy(replicationFactor = replicationFactor)
+        case "NetworkTopologyStrategy" => NetworkTopologyStrategy(datacenterNames.map(CassandraDataCenter(_, replicationFactor)))
+      }
+      Migrator(Registry(Seq.empty), CassandraMigrator.appliedMigrationsTableNameDefault).initialize(session, url.keyspace, replStrategy)
     }
 
     def destroy(url: CassandraUrl, logger: Logger): Unit = {
       withSession(url, None, logger) { (url, session) =>
-        Migrator(Registry(Seq.empty)).destroy(session, url.keyspace)
+        Migrator(Registry(Seq.empty), CassandraMigrator.appliedMigrationsTableNameDefault).destroy(session, url.keyspace)
       }
     }
 
@@ -191,17 +208,17 @@ object Plugin extends sbt.Plugin {
     def migrate(session: Session, migrationsDirs: Seq[File], url: CassandraUrl): Unit = {
       val registry = Registry(migrationsDirs.flatMap(loadMigrations))
       session.execute(s"USE ${url.keyspace}")
-      Migrator(registry).migrate(session)
+      Migrator(registry, CassandraMigrator.appliedMigrationsTableNameDefault).migrate(session)
     }
 
     def checkPeerSchemaVersions(session: Session, logger: Logger): Unit = {
-      import scala.collection.JavaConversions._
-      val schemaByPeer = session.execute(select("peer", "schema_version").from("system", "peers")).all().map { row =>
+      import scala.collection.JavaConverters._
+      val schemaByPeer = session.execute(select("peer", "schema_version").from("system", "peers")).all().asScala.map { row =>
         (row.getInet("peer"), row.getUUID("schema_version"))
       }.toMap
 
-      if(schemaByPeer.values.toSet.size > 1) {
-        val peerSchemaVersions = schemaByPeer.map{ case (peer, schemaVersion) => s"peer: $peer, schema_version: $schemaVersion" }.mkString("\n")
+      if (schemaByPeer.values.toSet.size > 1) {
+        val peerSchemaVersions = schemaByPeer.map { case (peer, schemaVersion) => s"peer: $peer, schema_version: $schemaVersion" }.mkString("\n")
         logger.warn(s"There are peers with different schema versions:\n$peerSchemaVersions")
       }
     }
@@ -222,7 +239,7 @@ object Plugin extends sbt.Plugin {
       val parser = de.kaufhof.pillar.Parser()
       val files = Path.allSubpaths(migrationsDir).map(_._1).filterNot(f => f.isDirectory || f.getName.head == '.').toSeq
       if (files.nonEmpty) {
-        files.map {file =>
+        files.map { file =>
           val in = Files.newInputStream(file.toPath)
           try {
             parser.parse(in)
@@ -234,10 +251,6 @@ object Plugin extends sbt.Plugin {
         throw new IllegalArgumentException("The pillarMigrationsDir does not contain any migration files - wrong configuration?")
       }
     }
-
-    private def replicationOptionsWith(replicationStrategy: String, replicationFactor: Int): ReplicationOptions =
-      new ReplicationOptions(Map("class" -> replicationStrategy, "replication_factor" -> replicationFactor))
-
 
     private implicit class RichClusterBuilder(builder: Cluster.Builder) {
 
@@ -258,7 +271,7 @@ object Plugin extends sbt.Plugin {
           }
         }
 
-        if(exceptions.length == addresses.length) {
+        if (exceptions.length == addresses.length) {
           logger.error(s"All contact points failed on addContactPoint, rethrowing exception for last contact point.")
           throw exceptions.head
         }
