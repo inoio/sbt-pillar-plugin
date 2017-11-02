@@ -10,13 +10,15 @@ version := "2.1.2"
 
 licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
-scalaVersion := "2.10.6"
+sbtVersion in Global := "1.0.2"
 
-scalacOptions += "-target:jvm-1.7"
+crossSbtVersions := Seq("1.0.2", "0.13.16")
+
+scalacOptions += "-target:jvm-1.8"
 
 libraryDependencies ++= Seq(
-  "de.kaufhof" %% "pillar" % "3.0.0",
-  "com.datastax.cassandra" % "cassandra-driver-core" % "3.0.0"
+  "de.kaufhof" %% "pillar" % "4.1.1",
+  "com.datastax.cassandra" % "cassandra-driver-core" % "3.3.0"
 )
 
 // Maven publishing info
@@ -27,19 +29,19 @@ publishTo := {
   if (version.value.trim.endsWith("SNAPSHOT"))
     Some("snapshots" at nexus + "content/repositories/snapshots")
   else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+    Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
 pomExtra := (
   <url>https://github.com/inoio/sbt-pillar-plugin</url>
-  <scm>
-    <url>git@github.com:inoio/sbt-pillar-plugin.git</url>
-    <connection>scm:git:git@github.com:inoio/sbt-pillar-plugin.git</connection>
-  </scm>
-  <developers>
-    <developer>
-      <id>martin.grotzke</id>
-      <name>Martin Grotzke</name>
-      <url>https://github.com/magro</url>
-    </developer>
-  </developers>)
+    <scm>
+      <url>git@github.com:inoio/sbt-pillar-plugin.git</url>
+      <connection>scm:git:git@github.com:inoio/sbt-pillar-plugin.git</connection>
+    </scm>
+    <developers>
+      <developer>
+        <id>martin.grotzke</id>
+        <name>Martin Grotzke</name>
+        <url>https://github.com/magro</url>
+      </developer>
+    </developers>)

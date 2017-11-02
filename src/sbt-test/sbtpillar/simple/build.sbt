@@ -1,5 +1,5 @@
-import io.ino._
-import io.ino.sbtpillar.Plugin.PillarKeys._
+import _root_.io.ino._
+import _root_.io.ino.sbtpillar.Plugin.PillarKeys._
 
 lazy val root = (project in file("."))
   .settings(
