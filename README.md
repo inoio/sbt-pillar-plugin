@@ -7,13 +7,13 @@ This sbt plugin allows to run Cassandra schema/data migrations from sbt (using [
  For details on migration files check out the [pillar documentation](https://github.com/comeara/pillar#migration-files).
  The cassandra connection configuration is not based on pillar but we're using our own format (see [Configuration](#configuration)).
 
-The plugin is built for sbt 0.13.
+The plugin is built for sbt 1.0 and 0.13.
 
 ## Installation
 
 To install the plugin you have to add it to `project/plugins.sbt`:
 ```
-addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.1.2")
+addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.1.3")
 ```
 
 ## Configuration
@@ -36,6 +36,10 @@ pillarReplicationFactorConfigKey := "cassandra.replicationFactor"
 
 pillarDefaultConsistencyLevelConfigKey := "cassandra.defaultConsistencyLevel"
 
+pillarReplicationStrategyConfigKey := "cassandra.replicationStrategy"
+
+pillarDatacenterNamesConfigKey := "cassandra.datacenterNames"
+
 pillarMigrationsDir := file("conf/migrations")
 
 //optionally:
@@ -51,7 +55,9 @@ The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspac
 
 The `pillarMigrationsDir` contains the directory with the cql-files to process. It's processed recursively, therefore files in subfolders are picked up as well.
 
-The `pillarReplicationStrategyConfigKey` is optional, the default value is `SimpleStrategy`.
+The `pillarReplicationStrategyConfigKey` is optional, the default value is `SimpleStrategy`. `NetworkTopologyStrategy` is also supported.
+
+The `pillarDatacenterNamesConfigKey` is only used if the `NetworkTopologyStrategy` is chosen. You can place your datecenter names here in a list `["eu", "na", "sa"]`. This will result in the following replication class:  `replication = {'class': 'NetworkTopologyStrategy', 'eu': '3', 'na': '3', 'sa': '3'}`
 
 The `pillarReplicationFactorConfigKey` is optional, the default value is `3`.
 

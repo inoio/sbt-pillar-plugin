@@ -6,13 +6,13 @@ description := "sbt plugin for cassandra schema/data migrations using pillar (ht
 
 organization := "io.ino"
 
-version := "2.1.2"
+version := "2.1.3"
 
 licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
-sbtVersion in Global := "1.0.2"
+sbtVersion in Global := "1.0.3"
 
-crossSbtVersions := Seq("1.0.2", "0.13.16")
+crossSbtVersions := Seq("1.0.3", "0.13.16")
 
 scalacOptions += "-target:jvm-1.8"
 
