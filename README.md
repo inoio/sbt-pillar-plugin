@@ -3,8 +3,8 @@
 [![Build Status](https://travis-ci.org/inoio/sbt-pillar-plugin.png?branch=master)](https://travis-ci.org/inoio/sbt-pillar-plugin)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.ino/sbt-pillar-plugin/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.ino%22%20a%3A%22sbt-pillar-plugin%22)
 
-This sbt plugin allows to run Cassandra schema/data migrations from sbt (using [pillar](https://github.com/comeara/pillar)).
- For details on migration files check out the [pillar documentation](https://github.com/comeara/pillar#migration-files).
+This sbt plugin allows to run Cassandra schema/data migrations from sbt (using [pillar](https://github.com/Galeria-Kaufhof/pillar)).
+ For details on migration files check out the [pillar documentation](https://github.com/Galeria-Kaufhof/pillar#migration-files).
  The cassandra connection configuration is not based on pillar but we're using our own format (see [Configuration](#configuration)).
 
 The plugin is built for sbt 1.0 and 0.13.
@@ -48,7 +48,7 @@ pillarExtraMigrationsDirs := Seq(file("conf/extra-migrations"))
 
 The shown configuration assumes that the url for your cassandra is configured in `conf/application.conf` under the key
 `cassandra.url` and that pillar migration files are kept in `conf/migrations` (regarding the format of migration files
-check out the [pillar documentation](https://github.com/comeara/pillar#migration-files)).
+check out the [pillar documentation](https://github.com/Galeria-Kaufhof/pillar#migration-files)).
 
 The `cassandra.url` has to follow the format `cassandra://<host>:<port>/<keyspace>?host=<host>&host=<host>`, e.g. it would be
 `cassandra.url="cassandra://192.168.0.10:9042/my_keyspace?host=192.168.0.11&host=192.168.0.12"`.
