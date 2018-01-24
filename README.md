@@ -1,5 +1,7 @@
 # sbt-pillar-plugin - manage Cassandra migrations from sbt
 
+[![Join the chat at https://gitter.im/inoio/sbt-pillar-plugin](https://badges.gitter.im/inoio/sbt-pillar-plugin.svg)](https://gitter.im/inoio/sbt-pillar-plugin?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status](https://travis-ci.org/inoio/sbt-pillar-plugin.png?branch=master)](https://travis-ci.org/inoio/sbt-pillar-plugin)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.ino/sbt-pillar-plugin/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.ino%22%20a%3A%22sbt-pillar-plugin%22)
 
