@@ -21,11 +21,12 @@ addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "2.1.3")
 
 Add appropriate configuration to `build.sbt` like this:
 ```
-import io.ino.sbtpillar.Plugin.PillarKeys._
+import _root_.io.ino._
+import _root_.io.ino.sbtpillar.Plugin.PillarKeys._
 
 ...
 
-pillarSettings
+sbtpillar.Plugin.pillarSettings
 
 pillarConfigFile := file("conf/application.conf")
 
@@ -76,6 +77,10 @@ The sbt pillar plugin provides the following tasks:
 <dt>migrate</dt><dd>Runs pillar migrations (assumes <code>createKeyspace</code> was run before)</dd>
 <dt>cleanMigrate</dt><dd>Recreates the keyspace (drops if exists && creates) and runs pillar migrations (useful for continuous integration scenarios)</dd>
 </dl>
+
+## Migrate to sbt-pillar 2.13 and sbt 1.0
+
+Since SBT 1.0 `sbt.io` is in scope which makes it necessary to change imports from `import io.ino` to `import _root_.io.ino`. When moving to `sbt-pillar` 2.13 replace `pillarSettings` in your configuration with `sbtpillar.Plugin.pillarSettings`.
 
 ## License
 
